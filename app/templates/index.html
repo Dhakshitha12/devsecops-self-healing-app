@@ -1,102 +1,320 @@
 <!DOCTYPE html>
-<html lang="en">
-
+<html>
 <head>
 
-<meta charset="UTF-8">
+<title>Security Monitoring Dashboard</title>
 
-<title>Incident Reporting System</title>
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
 
 body{
-background: linear-gradient(120deg,#0f2027,#203a43,#2c5364);
-color:white;
+margin:0;
 font-family:Arial;
+background:#f4f6f9;
 }
 
-.container-box{
+.container{
+display:flex;
+height:100vh;
+}
+
+/* Sidebar */
+
+.sidebar{
+width:230px;
+background:#1f2d3d;
+color:white;
+padding-top:20px;
+}
+
+.sidebar h2{
+text-align:center;
+margin-bottom:30px;
+}
+
+.sidebar a{
+display:block;
+padding:12px 20px;
+color:white;
+text-decoration:none;
+cursor:pointer;
+}
+
+.sidebar a:hover{
+background:#2f4050;
+}
+
+/* Content */
+
+.content{
+flex:1;
+padding:40px;
+overflow:auto;
+}
+
+.section{
+display:none;
+}
+
+.section.active{
+display:block;
+}
+
+/* Dashboard cards */
+
+.dashboard-cards{
+display:flex;
+gap:20px;
+margin-bottom:30px;
+}
+
+.card{
 background:white;
-color:black;
-padding:30px;
-border-radius:12px;
-box-shadow:0 0 20px rgba(0,0,0,0.3);
+padding:20px;
+border-radius:10px;
+box-shadow:0 2px 8px rgba(0,0,0,0.1);
+flex:1;
+text-align:center;
 }
 
-.header-image{
-width:100%;
-height:200px;
-object-fit:cover;
+/* Form */
+
+form{
+background:white;
+padding:20px;
 border-radius:10px;
+width:400px;
+box-shadow:0 2px 8px rgba(0,0,0,0.1);
+}
+
+input{
+width:100%;
+padding:10px;
+margin-bottom:15px;
+border:1px solid #ccc;
+border-radius:4px;
+}
+
+button{
+background:#007bff;
+color:white;
+border:none;
+padding:10px 15px;
+border-radius:4px;
+cursor:pointer;
+}
+
+/* Incident cards */
+
+.incident-container{
+display:grid;
+grid-template-columns:repeat(auto-fit,minmax(300px,1fr));
+gap:20px;
+}
+
+.incident-card{
+background:white;
+padding:20px;
+border-radius:10px;
+box-shadow:0 2px 8px rgba(0,0,0,0.1);
+}
+
+.threat-high{
+background:red;
+color:white;
+padding:4px 10px;
+border-radius:4px;
+font-size:12px;
+}
+
+.threat-low{
+background:green;
+color:white;
+padding:4px 10px;
+border-radius:4px;
+font-size:12px;
+}
+
+.resolve-btn{
+background:#28a745;
+color:white;
+padding:6px 12px;
+border-radius:4px;
+text-decoration:none;
+margin-right:10px;
+}
+
+.delete-btn{
+background:#dc3545;
+color:white;
+padding:6px 12px;
+border-radius:4px;
+text-decoration:none;
+}
+
+.alert{
+animation:blink 1s infinite;
+}
+
+@keyframes blink{
+0%{color:red;}
+50%{color:black;}
+100%{color:red;}
 }
 
 </style>
 
 </head>
 
-
 <body>
 
-<div class="container mt-5">
+<div class="container">
 
-<h1 class="text-center mb-4">Incident Reporting System</h1>
+<!-- Sidebar -->
 
+<div class="sidebar">
 
+<h2>SOC Dashboard</h2>
 
-<div class="container-box">
+<a onclick="showSection('report')">Report Incident</a>
+<a onclick="showSection('dashboard')">Security Dashboard</a>
+<a onclick="showSection('incidents')">Incidents</a>
 
-<h3>Add Security Incident</h3>
+<a href="/export">Export CSV</a>
 
-<form action="/add" method="post">
+<hr>
 
-<div class="mb-3">
-
-<label class="form-label">Incident Title</label>
-
-<input type="text" class="form-control" name="title" required>
-
-</div>
-
-<div class="mb-3">
-
-<label class="form-label">Description</label>
-
-<textarea class="form-control" name="description" required></textarea>
+<a href="/logout">Logout</a>
 
 </div>
 
-<button class="btn btn-danger">Report Incident</button>
+
+<!-- Content -->
+
+<div class="content">
+
+
+<!-- REPORT INCIDENT -->
+
+<div id="report" class="section active">
+
+<h2>Report Security Incident</h2>
+
+{% if role == "admin" %}
+
+<form action="/add" method="post" enctype="multipart/form-data">
+
+<label>Incident Title</label>
+<input type="text" name="title" required>
+
+<label>Description</label>
+<input type="text" name="description" required>
+
+<label>Upload Evidence</label>
+<input type="file" name="evidence">
+
+<button type="submit">Submit Incident</button>
 
 </form>
 
+{% else %}
+
+<p>You do not have permission to report incidents.</p>
+
+{% endif %}
+
 </div>
 
-<hr class="mt-5 mb-4">
 
-<h3>Reported Incidents</h3>
 
-<div class="row">
+<!-- DASHBOARD -->
+
+<div id="dashboard" class="section">
+
+<h2>Security Dashboard</h2>
+
+<div class="dashboard-cards">
+
+<div class="card">
+<h3>Total Incidents</h3>
+<p>{{ reports|length }}</p>
+</div>
+
+<div class="card">
+<h3 style="color:red;">High Threats</h3>
+<p>{{ high_threats }}</p>
+</div>
+
+<div class="card">
+<h3 style="color:green;">Low Threats</h3>
+<p>{{ low_threats }}</p>
+</div>
+
+<div class="card">
+<h3 style="color:red;">⚠ Live Threat Counter</h3>
+<p id="incidentCounter">{{ reports|length }}</p>
+</div>
+
+</div>
+
+<canvas id="threatChart"></canvas>
+
+</div>
+
+
+
+<!-- INCIDENT LIST -->
+
+<div id="incidents" class="section">
+
+<h2>Reported Incidents</h2>
+
+<div class="incident-container">
 
 {% for r in reports %}
 
-<div class="col-md-4">
+<div class="incident-card">
 
-<div class="card mb-4 shadow">
+<h3>{{ r.title }}</h3>
 
-<div class="card-body">
+<p>{{ r.description }}</p>
 
-<h5 class="card-title">{{ r.title }}</h5>
+{% if r.threat_level == "HIGH" %}
+<span class="threat-high">HIGH THREAT</span>
+{% else %}
+<span class="threat-low">LOW THREAT</span>
+{% endif %}
 
-<p class="card-text">{{ r.description }}</p>
+<p>Status: {{ r.status }}</p>
 
-<a class="btn btn-danger btn-sm"
-href="/delete/{{ r.title }}">Delete</a>
+{% if r.evidence %}
 
-</div>
+<p>Evidence File: {{ r.evidence }}</p>
 
-</div>
+{% endif %}
+
+<h4>Activity Timeline</h4>
+
+<ul>
+
+{% for t in r.timeline %}
+
+<li>{{ t.time }} - {{ t.event }}</li>
+
+{% endfor %}
+
+</ul>
+
+{% if role == "admin" %}
+
+{% if r.status != "Resolved" %}
+<a class="resolve-btn" href="/resolve/{{ r.title }}">Resolve</a>
+{% endif %}
+
+<a class="delete-btn" href="/delete/{{ r.title }}">Delete</a>
+
+{% endif %}
 
 </div>
 
@@ -106,6 +324,105 @@ href="/delete/{{ r.title }}">Delete</a>
 
 </div>
 
-</body>
+</div>
 
+</div>
+
+
+
+<script>
+
+/* Navigation */
+
+function showSection(section){
+
+document.querySelectorAll('.section').forEach(function(sec){
+sec.classList.remove('active');
+});
+
+document.getElementById(section).classList.add('active');
+
+localStorage.setItem("activeSection", section);
+
+}
+
+
+/* Restore last section */
+
+window.onload = function(){
+
+const savedSection = localStorage.getItem("activeSection");
+
+if(savedSection){
+
+document.querySelectorAll('.section').forEach(function(sec){
+sec.classList.remove('active');
+});
+
+document.getElementById(savedSection).classList.add('active');
+
+}
+
+}
+
+
+/* Threat chart */
+
+const high = {{ high_threats }};
+const low = {{ low_threats }};
+
+const ctx = document.getElementById("threatChart");
+
+if(ctx){
+
+new Chart(ctx,{
+type:'bar',
+data:{
+labels:["High Threats","Low Threats"],
+datasets:[{
+label:"Threat Count",
+data:[high,low],
+backgroundColor:["red","green"]
+}]
+}
+});
+
+}
+
+
+/* Live threat counter */
+
+let previousCount = {{ reports|length }};
+
+setInterval(function(){
+
+fetch("/")
+
+.then(response => response.text())
+
+.then(data => {
+
+const parser = new DOMParser();
+
+const htmlDoc = parser.parseFromString(data,"text/html");
+
+const newCount = htmlDoc.querySelector("#incidentCounter").innerText;
+
+if(newCount > previousCount){
+
+alert("⚠ NEW SECURITY INCIDENT DETECTED!");
+
+document.getElementById("incidentCounter").classList.add("alert");
+
+previousCount = newCount;
+
+}
+
+});
+
+},10000);
+
+</script>
+
+</body>
 </html>
