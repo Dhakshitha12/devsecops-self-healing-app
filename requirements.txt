@@ -1,3 +1,6 @@
 Flask
 pymongo
 flask-cors
+pytest
+flake8
+pylint

@@ -2,20 +2,59 @@ name: DevSecOps Pipeline
 
 on:
   push:
-    branches: [ "main" ]
+    branches:
+      - main
 
 jobs:
+
   build:
+
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout Code
+
+    - name: Checkout Repository
       uses: actions/checkout@v3
 
-    - name: Build Docker Image
-      run: docker build -t devsecops-app .
-
-    - name: Security Scan with Trivy
-      uses: aquasecurity/trivy-action@master
+    - name: Setup Python
+      uses: actions/setup-python@v4
       with:
-        image-ref: devsecops-app
+        python-version: 3.10
+
+    - name: Install Dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Run Unit Tests
+      run: |
+        python -m pytest
+
+    - name: Run Flake8 Linter
+      run: |
+        flake8 .
+
+    - name: Run Pylint
+      run: |
+        pylint app || true
+
+    - name: SonarQube Scan
+      uses: sonarsource/sonarqube-scan-action@master
+      env:
+        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+
+    - name: Build Docker Image
+      run: |
+        docker build -t devsecops-app .
+
+    - name: Deploy to AWS Elastic Beanstalk
+      uses: einaregilsson/beanstalk-deploy@v22
+      with:
+        aws_access_key: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws_secret_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        application_name: devsecops-app
+        environment_name: devsecops-env
+        region: us-east-1
+        version_label: ${{ github.sha }}
+        deployment_package: .
